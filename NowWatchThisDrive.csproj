@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>NowWatchThisDrive</AssemblyName>
+    <RootNamespace>NowWatchThisDrive</RootNamespace>
+  </PropertyGroup>
+
+  <!-- Bundled audio: deployed next to the DLL in the r2modman profile and the release zip. -->
+  <ItemGroup>
+    <None Include="Audio\NowWatchThisDrive.wav">
+      <Link>NowWatchThisDrive.wav</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <ThunderstoreContent Include="$(TargetDir)NowWatchThisDrive.wav" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- FMODUnity contains both the FMODUnity.* (Unity integration) and FMOD.* (core) types. -->
+    <Reference Include="FMODUnity">
+      <HintPath>$(GameManagedDir)\FMODUnity.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+</Project>

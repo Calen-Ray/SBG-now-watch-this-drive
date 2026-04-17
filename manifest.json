@@ -1,0 +1,9 @@
+{
+    "name": "NowWatchThisDrive",
+    "version_number": "0.2.0",
+    "website_url": "https://github.com/Calen-Ray/SBG-now-watch-this-drive",
+    "description": "Replaces the nice-shot announcer line with the now-watch-this-drive clip on a 100% charged swing.",
+    "dependencies": [
+        "BepInEx-BepInExPack-5.4.2305"
+    ]
+}
