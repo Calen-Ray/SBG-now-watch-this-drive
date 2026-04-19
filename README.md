@@ -53,6 +53,36 @@ pwsh tools/package.ps1
 
 Produces `artifacts/Cray-NowWatchThisDrive-<version>.zip` ready to upload.
 
+## Releasing
+
+Automated via [`.github/workflows/release.yml`](.github/workflows/release.yml) — publishing a
+GitHub Release uploads the attached zip to Thunderstore.
+
+**One-time setup.** Add a `THUNDERSTORE_TOKEN` repository secret (Settings -> Secrets and
+variables -> Actions). The token comes from
+[thunderstore.io/settings/teams/](https://thunderstore.io/settings/teams/) under the `Cray` team.
+
+**Cut a release:**
+
+```bash
+# 1. Bump version_number in manifest.json and add a CHANGELOG.md entry.
+# 2. Commit + tag + push.
+git commit -am "Release v0.2.0"
+git tag v0.2.0
+git push --follow-tags
+
+# 3. Build the zip locally (CI can't build — hosted runners don't have the game DLLs).
+pwsh tools/package.ps1
+
+# 4. Create the GitHub Release with the zip attached; the workflow publishes on release.published.
+gh release create v0.2.0 artifacts/Cray-*-*.zip --notes-file CHANGELOG.md
+```
+
+## Credits
+
+- Icon / cover art by **MultipleBees** — the original full-resolution artwork lives in
+  [`cover-art/`](cover-art/) alongside an [attribution note](cover-art/img-credit.txt).
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

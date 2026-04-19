@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.2.1
+- New icon / cover art by **MultipleBees**. Original high-res art kept in `cover-art/`.
+- Added `.github/workflows/release.yml` so publishing a GitHub Release auto-uploads the zip to Thunderstore.
+
 ## v0.2.0
 - Updated bundled audio clip.
 - Route audio playback through FMOD (Unity's native audio is disabled in the game build).
