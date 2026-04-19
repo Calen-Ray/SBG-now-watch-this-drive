@@ -66,3 +66,7 @@ jobs:
           website:     https://github.com/${{ github.repository }}
           file:        ${{ env.ZIP }}
           token:       ${{ secrets.THUNDERSTORE_TOKEN }}
+          # Workaround: the action's entrypoint.sh has inverted `--repository` logic —
+          # leaving this unset resolves to empty and tcli fails silently with "Publish to "
+          # (no target). Any non-empty value trips the branch that hardcodes to thunderstore.io.
+          repo:        thunderstore.io
