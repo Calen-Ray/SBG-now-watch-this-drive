@@ -1,5 +1,9 @@
 # Changelog
 
+## v0.3.0
+- Replicate perfect-swing clip playback to all modded clients in a match via Mirror.
+- Play the clip as 3D FMOD audio from the emitting golfer's position instead of only locally.
+
 ## v0.2.1
 - New icon / cover art by **MultipleBees**. Original high-res art kept in `cover-art/`.
 - Added `.github/workflows/release.yml` so publishing a GitHub Release auto-uploads the zip to Thunderstore.

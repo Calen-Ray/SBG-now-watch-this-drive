@@ -1,7 +1,9 @@
 # NowWatchThisDrive
 
 Replaces the announcer's "nice shot" audio with the classic "now watch this drive" clip whenever
-you pull off a 100%-charged swing.
+you pull off a 100%-charged swing. In multiplayer, if other players in the match also have the
+mod installed, the clip is replicated to every client and played from the swinger's world
+position.
 
 ## Install
 
@@ -22,6 +24,11 @@ mod preloads the bundled WAV through `FMODUnity.RuntimeManager.CoreSystem.create
 Harmony-prefixes `CourseManager.PlayAnnouncerLineLocalOnly` — when the announcer would play
 `NiceShot`, we play the override clip instead and skip the vanilla FMOD event. Every other
 announcer line (hole-in-one, overtime, …) is untouched.
+
+When connected to a match, the local client also sends a small Mirror message to the host. The
+host rebroadcasts a playback message to every client, and each client replays the clip as 3D FMOD
+audio from the emitting golfer's position. Players without the mod just keep hearing vanilla
+behavior on their own client.
 
 ## Building from source
 
@@ -67,15 +74,15 @@ variables -> Actions). The token comes from
 ```bash
 # 1. Bump version_number in manifest.json and add a CHANGELOG.md entry.
 # 2. Commit + tag + push.
-git commit -am "Release v0.2.0"
-git tag v0.2.0
+git commit -am "Release v0.3.0"
+git tag v0.3.0
 git push --follow-tags
 
 # 3. Build the zip locally (CI can't build — hosted runners don't have the game DLLs).
 pwsh tools/package.ps1
 
 # 4. Create the GitHub Release with the zip attached; the workflow publishes on release.published.
-gh release create v0.2.0 artifacts/Cray-*-*.zip --notes-file CHANGELOG.md
+gh release create v0.3.0 artifacts/Cray-*-*.zip --notes-file CHANGELOG.md
 ```
 
 ## Credits
