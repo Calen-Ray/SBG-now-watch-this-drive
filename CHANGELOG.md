@@ -1,5 +1,8 @@
 # Changelog
 
+## v0.3.2
+- Added verbose diagnostic logging around the `NiceShot` announcer intercept, `SwingNiceShot` VFX hook, and each FMOD playback step to isolate freezes during trigger-time audio execution.
+
 ## v0.3.1
 - Removed the custom Mirror audio replication messages that could disconnect clients without the mod.
 - Drive clip playback now follows the game's existing replicated `SwingNiceShot` VFX event instead.

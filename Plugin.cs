@@ -14,7 +14,7 @@ namespace NowWatchThisDrive
     {
         public const string ModGuid = "sbg.nowwatchthisdrive";
         public const string ModName = "NowWatchThisDrive";
-        public const string ModVersion = "0.3.1";
+        public const string ModVersion = "0.3.2";
 
         private const string AudioFileName = "NowWatchThisDrive.wav";
         private const float AudioMinDistance = 1.5f;
@@ -22,6 +22,7 @@ namespace NowWatchThisDrive
         private const float AudioHeightOffset = 0.9f;
         private const float DuplicateWindowSeconds = 0.12f;
         private const float DuplicateDistanceSquared = 0.25f;
+        private static readonly bool VerboseLogging = true;
 
         internal static ManualLogSource Log;
 
@@ -29,6 +30,16 @@ namespace NowWatchThisDrive
         private static bool _soundReady;
         private static float _lastPlayTime;
         private static Vector3 _lastPlayPosition;
+
+        private static void DebugLog(string message)
+        {
+            if (!VerboseLogging)
+            {
+                return;
+            }
+
+            Log?.LogInfo($"[diag t={Time.unscaledTime:F3} frame={Time.frameCount} thread={System.Threading.Thread.CurrentThread.ManagedThreadId}] {message}");
+        }
 
         private void Awake()
         {
@@ -56,6 +67,7 @@ namespace NowWatchThisDrive
                     audioPath,
                     MODE.CREATESAMPLE | MODE._3D | MODE._3D_LINEARROLLOFF,
                     out _sound);
+                DebugLog($"createSound path='{audioPath}' mode='{MODE.CREATESAMPLE | MODE._3D | MODE._3D_LINEARROLLOFF}' result={result}");
 
                 if (result != RESULT.OK)
                 {
@@ -83,26 +95,34 @@ namespace NowWatchThisDrive
             if (Time.unscaledTime - _lastPlayTime < DuplicateWindowSeconds &&
                 (worldPosition - _lastPlayPosition).sqrMagnitude < DuplicateDistanceSquared)
             {
+                DebugLog($"PlayOverride skipped duplicate at {worldPosition}");
                 return;
             }
 
             try
             {
+                DebugLog($"PlayOverride begin position={worldPosition}");
                 var sys = RuntimeManager.CoreSystem;
+                DebugLog("Calling playSound");
                 var playResult = sys.playSound(_sound, default(ChannelGroup), true, out Channel channel);
+                DebugLog($"playSound returned {playResult}; channelHandle={channel.handle}");
                 if (playResult != RESULT.OK)
                 {
                     Log.LogWarning($"playSound: {playResult}");
                     return;
                 }
 
+                DebugLog("Calling setMode");
                 var modeResult = channel.setMode(MODE._3D | MODE._3D_LINEARROLLOFF);
+                DebugLog($"setMode returned {modeResult}");
                 if (modeResult != RESULT.OK)
                 {
                     Log.LogWarning($"setMode: {modeResult}");
                 }
 
+                DebugLog($"Calling set3DMinMaxDistance min={AudioMinDistance} max={AudioMaxDistance}");
                 var rangeResult = channel.set3DMinMaxDistance(AudioMinDistance, AudioMaxDistance);
+                DebugLog($"set3DMinMaxDistance returned {rangeResult}");
                 if (rangeResult != RESULT.OK)
                 {
                     Log.LogWarning($"set3DMinMaxDistance: {rangeResult}");
@@ -110,13 +130,17 @@ namespace NowWatchThisDrive
 
                 var pos = worldPosition.ToFMODVector();
                 var vel = Vector3.zero.ToFMODVector();
+                DebugLog($"Calling set3DAttributes pos=({pos.x:F3}, {pos.y:F3}, {pos.z:F3})");
                 var attrResult = channel.set3DAttributes(ref pos, ref vel);
+                DebugLog($"set3DAttributes returned {attrResult}");
                 if (attrResult != RESULT.OK)
                 {
                     Log.LogWarning($"set3DAttributes: {attrResult}");
                 }
 
+                DebugLog("Calling setPaused(false)");
                 var unpauseResult = channel.setPaused(false);
+                DebugLog($"setPaused(false) returned {unpauseResult}");
                 if (unpauseResult != RESULT.OK)
                 {
                     Log.LogWarning($"setPaused(false): {unpauseResult}");
@@ -124,6 +148,7 @@ namespace NowWatchThisDrive
 
                 _lastPlayTime = Time.unscaledTime;
                 _lastPlayPosition = worldPosition;
+                DebugLog("PlayOverride end");
             }
             catch (Exception ex)
             {
@@ -141,6 +166,7 @@ namespace NowWatchThisDrive
         {
             private static bool Prefix(AnnouncerLine line)
             {
+                DebugLog($"CourseManager.PlayAnnouncerLineLocalOnly prefix line={line} soundReady={_soundReady}");
                 if (line != AnnouncerLine.NiceShot || !_soundReady)
                 {
                     return true;
@@ -157,11 +183,13 @@ namespace NowWatchThisDrive
         {
             private static void Prefix(VfxType vfxType, Vector3 position)
             {
+                DebugLog($"VfxManager.PlayPooledVfxLocalOnlyInternal prefix vfxType={vfxType} position={position} soundReady={_soundReady}");
                 if (vfxType != VfxType.SwingNiceShot || !_soundReady)
                 {
                     return;
                 }
 
+                DebugLog("Matched SwingNiceShot VFX; invoking PlayOverride");
                 PlayOverride(GetEmitterPosition(position));
             }
         }
