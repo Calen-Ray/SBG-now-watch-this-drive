@@ -1,6 +1,6 @@
 {
     "name": "NowWatchThisDrive",
-    "version_number": "0.3.0",
+    "version_number": "0.3.1",
     "website_url": "https://github.com/Calen-Ray/SBG-now-watch-this-drive",
     "description": "Replaces the nice-shot announcer line with the now-watch-this-drive clip on a 100% charged swing.",
     "dependencies": [

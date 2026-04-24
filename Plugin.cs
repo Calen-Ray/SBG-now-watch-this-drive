@@ -5,7 +5,6 @@ using BepInEx.Logging;
 using HarmonyLib;
 using FMOD;
 using FMODUnity;
-using Mirror;
 using UnityEngine;
 
 namespace NowWatchThisDrive
@@ -15,24 +14,25 @@ namespace NowWatchThisDrive
     {
         public const string ModGuid = "sbg.nowwatchthisdrive";
         public const string ModName = "NowWatchThisDrive";
-        public const string ModVersion = "0.3.0";
+        public const string ModVersion = "0.3.1";
 
         private const string AudioFileName = "NowWatchThisDrive.wav";
         private const float AudioMinDistance = 1.5f;
         private const float AudioMaxDistance = 1000f;
         private const float AudioHeightOffset = 0.9f;
+        private const float DuplicateWindowSeconds = 0.12f;
+        private const float DuplicateDistanceSquared = 0.25f;
 
         internal static ManualLogSource Log;
 
         private static FMOD.Sound _sound;
         private static bool _soundReady;
+        private static float _lastPlayTime;
+        private static Vector3 _lastPlayPosition;
 
         private void Awake()
         {
             Log = Logger;
-            RegisterClientHandlers();
-            RegisterServerHandlers();
-            NetworkClient.OnConnectedEvent += RegisterClientHandlers;
             new Harmony(ModGuid).PatchAll();
             Log.LogInfo($"{ModName} v{ModVersion} loaded (sound loads in Start).");
         }
@@ -73,24 +73,15 @@ namespace NowWatchThisDrive
             }
         }
 
-        private static void RegisterClientHandlers()
+        internal static void PlayOverride(Vector3 worldPosition)
         {
-            NetworkClient.ReplaceHandler<DriveClipPlayMsg>(OnPlayMessage, false);
-        }
-
-        private static void RegisterServerHandlers()
-        {
-            if (!NetworkServer.active)
+            if (!_soundReady)
             {
                 return;
             }
 
-            NetworkServer.ReplaceHandler<DriveClipTriggerMsg>(OnTriggerMessage);
-        }
-
-        internal static void PlayOverride(Vector3 worldPosition)
-        {
-            if (!_soundReady)
+            if (Time.unscaledTime - _lastPlayTime < DuplicateWindowSeconds &&
+                (worldPosition - _lastPlayPosition).sqrMagnitude < DuplicateDistanceSquared)
             {
                 return;
             }
@@ -130,6 +121,9 @@ namespace NowWatchThisDrive
                 {
                     Log.LogWarning($"setPaused(false): {unpauseResult}");
                 }
+
+                _lastPlayTime = Time.unscaledTime;
+                _lastPlayPosition = worldPosition;
             }
             catch (Exception ex)
             {
@@ -137,101 +131,9 @@ namespace NowWatchThisDrive
             }
         }
 
-        private static void OnTriggerMessage(NetworkConnectionToClient conn, DriveClipTriggerMsg _)
-        {
-            if (conn == null || conn.identity == null)
-            {
-                return;
-            }
-
-            NetworkServer.SendToAll(new DriveClipPlayMsg
-            {
-                emitterNetId = conn.identity.netId,
-                position = GetEmitterPosition(conn.identity.transform.position)
-            });
-        }
-
-        private static void OnPlayMessage(DriveClipPlayMsg msg)
-        {
-            if (!_soundReady)
-            {
-                return;
-            }
-
-            uint localNetId = NetworkClient.connection != null && NetworkClient.connection.identity != null
-                ? NetworkClient.connection.identity.netId
-                : 0u;
-            if (msg.emitterNetId != 0 && msg.emitterNetId == localNetId)
-            {
-                return;
-            }
-
-            Vector3 position = msg.position;
-            if (msg.emitterNetId != 0 &&
-                NetworkClient.spawned.TryGetValue(msg.emitterNetId, out NetworkIdentity identity) &&
-                identity != null)
-            {
-                position = GetEmitterPosition(identity.transform.position);
-            }
-
-            PlayOverride(position);
-        }
-
-        private static bool TryGetLocalEmitter(out uint emitterNetId, out Vector3 emitterPosition)
-        {
-            emitterNetId = 0u;
-            emitterPosition = Vector3.zero;
-
-            PlayerGolfer fallbackLocalGolfer = null;
-            PlayerGolfer[] golfers = UnityEngine.Object.FindObjectsByType<PlayerGolfer>(FindObjectsSortMode.None);
-            for (int i = 0; i < golfers.Length; i++)
-            {
-                PlayerGolfer golfer = golfers[i];
-                if (golfer == null || !golfer.isLocalPlayer)
-                {
-                    continue;
-                }
-
-                fallbackLocalGolfer = fallbackLocalGolfer ?? golfer;
-                if (!golfer.IsSwinging)
-                {
-                    continue;
-                }
-
-                emitterNetId = golfer.netId;
-                emitterPosition = GetEmitterPosition(golfer.transform.position);
-                return true;
-            }
-
-            if (NetworkClient.connection != null && NetworkClient.connection.identity != null)
-            {
-                emitterNetId = NetworkClient.connection.identity.netId;
-                emitterPosition = GetEmitterPosition(NetworkClient.connection.identity.transform.position);
-                return true;
-            }
-
-            if (fallbackLocalGolfer != null)
-            {
-                emitterNetId = fallbackLocalGolfer.netId;
-                emitterPosition = GetEmitterPosition(fallbackLocalGolfer.transform.position);
-                return true;
-            }
-
-            return false;
-        }
-
         private static Vector3 GetEmitterPosition(Vector3 basePosition)
         {
             return basePosition + Vector3.up * AudioHeightOffset;
-        }
-
-        [HarmonyPatch(typeof(CourseManager), nameof(CourseManager.OnStartServer))]
-        internal static class Patch_CourseManager_OnStartServer
-        {
-            private static void Postfix()
-            {
-                RegisterServerHandlers();
-            }
         }
 
         [HarmonyPatch(typeof(CourseManager), nameof(CourseManager.PlayAnnouncerLineLocalOnly))]
@@ -244,21 +146,23 @@ namespace NowWatchThisDrive
                     return true;
                 }
 
-                if (!TryGetLocalEmitter(out uint emitterNetId, out Vector3 emitterPosition))
-                {
-                    return true;
-                }
-
-                Log?.LogInfo($"Intercepting NiceShot -> NowWatchThisDrive from netId={emitterNetId}");
-                PlayOverride(emitterPosition);
-
-                if (NetworkClient.active)
-                {
-                    RegisterClientHandlers();
-                    NetworkClient.Send(new DriveClipTriggerMsg());
-                }
-
+                Log?.LogInfo("Suppressing local NiceShot announcer; clip follows replicated SwingNiceShot VFX.");
                 return false;
+            }
+        }
+
+        [HarmonyPatch(typeof(VfxManager), "PlayPooledVfxLocalOnlyInternal",
+            new[] { typeof(VfxType), typeof(Vector3), typeof(Quaternion), typeof(Vector3), typeof(uint), typeof(bool), typeof(float), typeof(Action<PoolableParticleSystem>) })]
+        internal static class Patch_VfxManager_PlayPooledVfxLocalOnlyInternal
+        {
+            private static void Prefix(VfxType vfxType, Vector3 position)
+            {
+                if (vfxType != VfxType.SwingNiceShot || !_soundReady)
+                {
+                    return;
+                }
+
+                PlayOverride(GetEmitterPosition(position));
             }
         }
     }

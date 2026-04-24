@@ -25,10 +25,9 @@ Harmony-prefixes `CourseManager.PlayAnnouncerLineLocalOnly` — when the announc
 `NiceShot`, we play the override clip instead and skip the vanilla FMOD event. Every other
 announcer line (hole-in-one, overtime, …) is untouched.
 
-When connected to a match, the local client also sends a small Mirror message to the host. The
-host rebroadcasts a playback message to every client, and each client replays the clip as 3D FMOD
-audio from the emitting golfer's position. Players without the mod just keep hearing vanilla
-behavior on their own client.
+In multiplayer, the mod does not send any custom network messages. Instead, it follows the game's
+existing replicated `SwingNiceShot` VFX event and plays the clip as 3D FMOD audio from that
+position on each modded client. Players without the mod keep vanilla behavior and are not affected.
 
 ## Building from source
 
