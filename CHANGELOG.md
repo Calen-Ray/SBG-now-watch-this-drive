@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.0
+- Swinger now hears their own clip as full-quality 2D audio (no positional attenuation), restoring pre-3D playback feel.
+- Other players in a multiplayer lobby still hear the clip as 3D audio positioned at the swinger's hit point.
+- Tightened 3D rolloff range (8m–60m linear) so distance cues are audibly distinct rather than collapsing to L/R panning only.
+
 ## v0.3.2
 - Added verbose diagnostic logging around the `NiceShot` announcer intercept, `SwingNiceShot` VFX hook, and each FMOD playback step to isolate freezes during trigger-time audio execution.
 
