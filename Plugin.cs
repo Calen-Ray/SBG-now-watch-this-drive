@@ -97,7 +97,7 @@ namespace NowWatchThisDrive
         {
             if (!_soundReady) return;
 
-            Log?.LogInfo($"PlayLocal2D: entering, sound2D.isValid={_sound2D.isValid()}");
+            Log?.LogInfo($"PlayLocal2D: entering, sound2D.hasHandle={_sound2D.hasHandle()}");
 
             try
             {
@@ -109,14 +109,14 @@ namespace NowWatchThisDrive
                     return;
                 }
 
-                bool channelValid = channel.isValid();
+                bool channelValid = channel.hasHandle();
                 string volumeLabel = "n/a";
                 if (channelValid)
                 {
                     RESULT volResult = channel.getVolume(out float volume);
                     volumeLabel = volResult == RESULT.OK ? volume.ToString("0.###") : volResult.ToString();
                 }
-                Log?.LogInfo($"PlayLocal2D: playSound OK, channel.isValid={channelValid}, volume={volumeLabel}");
+                Log?.LogInfo($"PlayLocal2D: playSound OK, channel.hasHandle={channelValid}, volume={volumeLabel}");
             }
             catch (Exception ex)
             {
