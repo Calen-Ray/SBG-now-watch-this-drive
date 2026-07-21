@@ -1,5 +1,10 @@
 # Changelog
 
+## v0.4.1
+- Added diagnostic logging around the `NiceShot` intercept, `PlayLocal2D`'s FMOD `playSound`
+  result/channel/volume, and the `SwingNiceShot` VFX proximity check, to isolate a report that
+  the swinger stopped hearing their own clip post-update (others still hear the 3D copy fine).
+
 ## v0.4.0
 - Swinger now hears their own clip as full-quality 2D audio (no positional attenuation), restoring pre-3D playback feel.
 - Other players in a multiplayer lobby still hear the clip as 3D audio positioned at the swinger's hit point.

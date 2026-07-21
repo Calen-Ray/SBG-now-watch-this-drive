@@ -14,7 +14,7 @@ namespace NowWatchThisDrive
     {
         public const string ModGuid = "sbg.nowwatchthisdrive";
         public const string ModName = "NowWatchThisDrive";
-        public const string ModVersion = "0.4.0";
+        public const string ModVersion = "0.4.1";
 
         private const string AudioFileName = "NowWatchThisDrive.wav";
 
@@ -97,14 +97,26 @@ namespace NowWatchThisDrive
         {
             if (!_soundReady) return;
 
+            Log?.LogInfo($"PlayLocal2D: entering, sound2D.isValid={_sound2D.isValid()}");
+
             try
             {
                 var playResult = RuntimeManager.CoreSystem.playSound(
-                    _sound2D, default(ChannelGroup), false, out Channel _);
+                    _sound2D, default(ChannelGroup), false, out Channel channel);
                 if (playResult != RESULT.OK)
                 {
                     Log?.LogWarning($"playSound 2D: {playResult}");
+                    return;
                 }
+
+                bool channelValid = channel.isValid();
+                string volumeLabel = "n/a";
+                if (channelValid)
+                {
+                    RESULT volResult = channel.getVolume(out float volume);
+                    volumeLabel = volResult == RESULT.OK ? volume.ToString("0.###") : volResult.ToString();
+                }
+                Log?.LogInfo($"PlayLocal2D: playSound OK, channel.isValid={channelValid}, volume={volumeLabel}");
             }
             catch (Exception ex)
             {
@@ -163,7 +175,14 @@ namespace NowWatchThisDrive
         {
             private static bool Prefix(AnnouncerLine line)
             {
-                if (line != AnnouncerLine.NiceShot || !_soundReady)
+                if (line != AnnouncerLine.NiceShot)
+                {
+                    return true;
+                }
+
+                Log?.LogInfo($"NiceShot intercept fired (soundReady={_soundReady}).");
+
+                if (!_soundReady)
                 {
                     return true;
                 }
@@ -183,7 +202,10 @@ namespace NowWatchThisDrive
             private static void Prefix(VfxType vfxType, Vector3 position)
             {
                 if (vfxType != VfxType.SwingNiceShot || !_soundReady) return;
-                if (IsLocalPlayerSwingPosition(position)) return;
+
+                bool isLocal = IsLocalPlayerSwingPosition(position);
+                Log?.LogInfo($"SwingNiceShot VFX at {position}, treated as {(isLocal ? "local (skip 3D)" : "remote (play 3D)")}.");
+                if (isLocal) return;
 
                 PlayRemote3D(position + Vector3.up * AudioHeightOffset);
             }
